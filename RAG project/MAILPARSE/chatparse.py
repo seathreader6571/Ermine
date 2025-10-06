@@ -11,8 +11,8 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-INPUT_PATH  = Path(r"D:\mywritingpad@proton.me\mail_20250910_211624")
-OUTPUT_PATH = Path(r"D:\mywritingpad@proton.me\output_txt")
+INPUT_PATH  = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
+OUTPUT_PATH = Path(r"J:\mywritingpad@proton.me\output_txt")
 
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -170,6 +170,12 @@ def process_eml(eml_file, output_root=None, skip_if_exists=True):
 # Batch runner
 # -------------------
 def batch_convert(eml_files, out_dir=None, workers=8, skip_if_exists=True):
+    print(f"Creating output root at: {out_dir.resolve()}")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (emails_dir := out_dir / "emails").mkdir(parents=True, exist_ok=True)
+    (attachments_dir := out_dir / "attachments").mkdir(parents=True, exist_ok=True)
+    print(f"Ensured {emails_dir} and {attachments_dir} exist")
+
     # Add a header for this run
     logging.info("=" * 60)
     logging.info(f"Starting new conversion run at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -184,7 +190,7 @@ def batch_convert(eml_files, out_dir=None, workers=8, skip_if_exists=True):
     for f in eml_files:
         f = Path(f)
         if out_dir is None:
-            target_dir = f.parent / "output"
+            target_dir = f.parent / "output_txt"
         else:
             target_dir = Path(out_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
@@ -258,6 +264,9 @@ def batch_convert(eml_files, out_dir=None, workers=8, skip_if_exists=True):
 # Command-line interface
 # -------------------
 if __name__ == "__main__":
+    print("INPUT_PATH =", INPUT_PATH.resolve())
+    print("OUTPUT_PATH =", OUTPUT_PATH.resolve())
+
     target = INPUT_PATH
     out_dir = OUTPUT_PATH
 
