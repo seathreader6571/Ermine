@@ -11,8 +11,8 @@ import pandas as pd
 # -----------------------------
 # CONFIG
 # -----------------------------
-INPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\output_txt\emails")
-OUTPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\output_txt\FWD_emails")
+INPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Input")
+OUTPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Output")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 MAX_DEPTH = 15
@@ -26,12 +26,12 @@ FORWARD_MARKERS = (
 
 # localized label → canonical key
 LABEL_TO_CANON = {
-    "from": "from", "van": "from",
-    "to": "to", "aan": "to",
-    "cc": "cc",
-    "bcc": "bcc",
-    "subject": "subject", "onderwerp": "subject",
-    "date": "date", "datum": "date", "sent": "date", "verzonden": "date",
+    "from:": "from:", "van:": "from:",
+    "to:": "to:", "aan:": "to:",
+    "cc:": "cc:",
+    "bcc:": "bcc:",
+    "subject:": "subject:", "onderwerp:": "subject:",
+    "date:": "date:", "datum:": "date:", "sent:": "date:", "verzonden:": "date:",
 }
 
 HEADER_KEYWORDS = {
@@ -53,6 +53,10 @@ def normalize(text: str) -> str:
     text = text.replace("\uFEFF", "")
     return text
 
+def change_key_format(msg_dict: dict) -> dict:
+    new_dict = {f"{key}:": v for key, v in msg_dict.items()} 
+    return(new_dict)
+
 def keyword_to_language(kw: str)-> str:
     if kw == 'van:':
         return('Dutch')
@@ -70,7 +74,7 @@ def list_merge(ls: list) -> str:
 #THe function below takes the dictionary and the 'body' text and splits it recursively to a new dictionary for every header start occurence.
 
 def recursive_split(msg_dict: dict, depth = 0, max_depth = MAX_DEPTH) -> dict:
-    body = normalize(msg_dict['body']).strip()
+    body = normalize(msg_dict['body:']).strip()
     splitted = body.splitlines()
 
     fwd_start = next(
@@ -83,16 +87,16 @@ def recursive_split(msg_dict: dict, depth = 0, max_depth = MAX_DEPTH) -> dict:
     
     #Distribute the split bodies
     old_body = list_merge(splitted[: fwd_start])
-    msg_dict["body"] = old_body
+    msg_dict['body:'] = old_body
 
     new_body = list_merge(splitted[fwd_start + 1:])
     new_dict = {  
-        "from": "Name",
-        "to": "Name",
-        "cc": "Name",
-        "subject": "some text",
-        "date": "some date",
-        "body": new_body
+        "from:": "Name",
+        "to:": "Name",
+        "cc:": "Name",
+        "subject:": "some text",
+        "date:": "some date",
+        "body:": new_body
 
 
     }
@@ -109,7 +113,7 @@ def redistribute_json(dc: dict) -> dict:
     Recursively splits and maps sections of an email-like dict using header keywords.
     Example header keys: "From:", "To:", "Subject:", etc.
     """
-    body = normalize(dc['body']).strip()
+    body = normalize(dc['body:']).strip()
 
     def find_first(body: str) -> int | None:
         """Return index of first header line based on LABEL_TO_CANON keys."""
@@ -125,11 +129,10 @@ def redistribute_json(dc: dict) -> dict:
     splitted = body.splitlines()
     first_idx = find_first(body)
     if first_idx is not None and first_idx > 0:
-        dc['from'] = "\n".join(splitted[:first_idx])
-        dc['body'] = "\n".join(splitted[first_idx:])
+        dc['from:'] = "\n".join(splitted[:first_idx])
+        dc['body:'] = "\n".join(splitted[first_idx:])
     else:
-        dc['from'] = ""
-        dc['body'] = body
+        dc['body:'] = body
 
     def recursive_body_split(body_text: str, container: dict):
         """Recursively find headers and map their content."""
@@ -140,7 +143,8 @@ def redistribute_json(dc: dict) -> dict:
         # Base case: no recognizable header found
         header_line = lines[0].casefold().strip()
         if not any(header_line.startswith(k) for k in LABEL_TO_CANON.keys()):
-            container['body'] = "\n".join(lines)
+            print(f"There was no header found in {header_line}")
+            container['body:'] = "\n".join(lines)
             return
 
         # Identify header key and canonical name
@@ -158,17 +162,21 @@ def redistribute_json(dc: dict) -> dict:
             # Split current section and recurse into remainder
             current_section = "\n".join(remaining_text.splitlines()[:next_idx])
             remainder = "\n".join(remaining_text.splitlines()[next_idx:])
+            container["body:"] = remainder
             container[canon_key] = current_section.strip()
             recursive_body_split(remainder, container)
         else:
             # Last section — assign all remaining text
-            container[canon_key] = remaining_text.strip()
+            split = remaining_text.splitlines()
+            container[canon_key] = split[0]
+            container["body:"] = "\n".join(split[1:])
 
     # --- Perform recursive header mapping ---
-    recursive_body_split(dc['body'], dc)
+    recursive_body_split(dc['body:'], dc)
 
     # --- If nested forwarded message exists, process recursively ---
     if 'fwd_mess' in dc:
+        print("found forward message")
         dc['fwd_mess'] = redistribute_json(dc['fwd_mess'])
 
     return dc
@@ -199,7 +207,8 @@ def process_json(path: Path):
     if not isinstance(data, dict):
         print(f"file {path.name} is not a json-dict.")
         return
-    structured = recursive_split(data)
+    updated = change_key_format(data)
+    structured = recursive_split(updated)
     structured_distributed = redistribute_json(structured)
     out_path = OUTPUT_DIR / path.name
     try:
