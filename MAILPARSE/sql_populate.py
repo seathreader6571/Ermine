@@ -42,7 +42,6 @@ CREATE VIRTUAL TABLE IF NOT EXISTS email_data USING fts5(
 # To make use of pipeline, uses the extracted messages stored in python vars to populate the database immediately
 # before writing to json file
 
-import mail_only
 
 INPUT_DIR = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/mail_20250910_211624_conversion")
 output_dir = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/mail_20250910_211624_conversion/output")
