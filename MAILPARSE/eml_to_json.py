@@ -16,8 +16,8 @@ import sys
 INPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
 OUTPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
 
-INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch")
-OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json")
+INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/testbatch")
+OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/testbatch/output_json")
 
 # -------------------
 # Logging setup
@@ -71,6 +71,7 @@ def parse_eml_clean(eml_file):
 
         if ctype == "text/plain" and body is None:
             body = part.get_content().strip()
+            raw_html = ""  # no raw_html if we find plain text
         elif ctype == "text/html" and body is None:
             raw_html = part.get_content()
             body = BeautifulSoup(raw_html, "html.parser").get_text(separator="\n", strip=True)
@@ -88,6 +89,7 @@ def parse_eml_clean(eml_file):
         "subject": subject,
         "date": date,
         "body": body,
+        "raw_html": raw_html
     }
 
 # -------------------
