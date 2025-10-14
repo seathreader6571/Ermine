@@ -13,8 +13,12 @@ from tqdm import tqdm
 import logging
 import sys
 
-INPUT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
-OUTPUT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
+INPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
+OUTPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
+
+INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch")
+OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json")
+
 # -------------------
 # Logging setup
 # -------------------
@@ -142,8 +146,8 @@ def batch_convert(eml_files, out_dir, workers=4):
 # -------------------
 if __name__ == "__main__":
 
-    input_dir = INPUT_DIR
-    output_dir = OUTPUT_DIR
+    input_dir = INPUT_DIR_drummingsnipe
+    output_dir = OUTPUT_DIR_drummingsnipe
 
     if not input_dir.exists():
         print(f"Error: Input folder not found: {input_dir}")
