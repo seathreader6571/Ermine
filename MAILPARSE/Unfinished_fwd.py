@@ -11,10 +11,13 @@ import pandas as pd
 # -----------------------------
 # CONFIG
 # -----------------------------
-INPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Input")
-OUTPUT_DIR = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Output")
+INPUT_DIR_seathreader = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Input")
+OUTPUT_DIR_seathreader = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Output")
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json")
+OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/splitted_json")
+
+OUTPUT_DIR_drummingsnipe.mkdir(parents=True, exist_ok=True)
 MAX_DEPTH = 35
 DEBUG = True  # set to False to quiet the logs
 
@@ -22,6 +25,7 @@ FORWARD_MARKERS = (
     "Begin forwarded message",
     "Forwarded message",
     "Original Message",
+    "op"
 )
 
 # localized label → canonical key
@@ -327,11 +331,11 @@ def process_json(path: Path):
         print(f"❌  Failed to write {out_path.name}: {e}")
 
 def batch_process():
-    files = sorted(INPUT_DIR.glob("*.json"))
+    files = sorted(INPUT_DIR_drummingsnipe.glob("*.json"))
     if not files:
-        print(f"no json files found in {INPUT_DIR.name}")
+        print(f"no json files found in {INPUT_DIR_drummingsnipe.name}")
         return
-    print(f"Found {len(files)} files in {INPUT_DIR}")
+    print(f"Found {len(files)} files in {INPUT_DIR_drummingsnipe}")
     for i, f in enumerate(files, 1):
         print(f"[{i}/{len(files)}]")
         process_json(f)
