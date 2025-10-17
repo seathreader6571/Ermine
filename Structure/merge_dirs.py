@@ -2,6 +2,13 @@ import os
 import shutil
 from pathlib import Path
 
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------
+# This script takes two directories and merges it into a new one, skipping duplicates. !!The files are moved, not copied!!
+#---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
 def merge_directories(dir1, dir2, target_dir):
     """
     Merge files from dir1 and dir2 into target_dir, avoiding duplicate filenames.

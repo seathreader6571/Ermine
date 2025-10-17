@@ -18,6 +18,9 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.vector_stores.faiss import FaissVectorStore
 
 
+
+
+
 # === 1. Helper: split emails into documents ===
 def split_emails(md_text, file_path):
     email_splits = re.split(r"\n(?:From|Van): ", md_text)

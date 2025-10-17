@@ -13,6 +13,13 @@ from tqdm import tqdm
 import logging
 import sys
 
+
+
+#----------------------------------------
+# This script: .eml --> .json
+#----------------------------------------
+
+
 INPUT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
 OUTPUT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
 # -------------------

@@ -1,0 +1,4 @@
+#Files git will ignore
+
+.env
+*.env

@@ -21,7 +21,7 @@ from llama_index.llms.llama_cpp import LlamaCPP
 
 # --------- Config you should set ----------
 PERSIST_DIR = "storage"  # where you persisted the FAISS index
-GGUF_PATH = r"Models\llama-2-7b-chat.Q5_K_M.gguf"  # change to your local path
+GGUF_PATH = r"C:\Users\daova\OneDrive\GitHub\LLM's\Mistral-7B-Instruct-v0.3.Q4_K_S.gguf" # change to your local path
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # must match your ingestion
 # ------------------------------------------
 
