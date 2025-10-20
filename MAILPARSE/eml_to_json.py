@@ -13,11 +13,12 @@ from tqdm import tqdm
 import logging
 import sys
 
+
 INPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
 OUTPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
 
-INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/testbatch")
-OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/testbatch/output_json")
+INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/mail_20250910_211624_conversion")
+OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE_local/mail_20250910_211624_conversion/output_json")
 
 # -------------------
 # Logging setup
@@ -38,7 +39,32 @@ def safe_filename(text):
     text = text.strip().replace(" ", "_")
     return re.sub(r'[<>:"/\\|?*]', '', text) or "no_subject"
 
+def render_html(body):
+    # Basic HTML template
+    template = f"""
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {{ font-family: Arial, sans-serif; }}
+          .headers {{ margin-bottom: 20px; font-size: 14px; color: #000000; }}
+          .subject {{ font-weight: bold; font-size: 16px; color: #000000; }}
+          hr {{ margin: 15px 0; }}
 
+          /* Override opacity and color in forwarded threads */
+          .body, .body * {{
+          color: black !important;
+          opacity: 1 !important;
+      }}
+        </style>
+      </head>
+      <body>
+        <hr/>
+        <div class="body">{body}</div>
+      </body>
+    </html>
+    """
+    return template
 
 # -------------------
 # Parser
@@ -71,16 +97,19 @@ def parse_eml_clean(eml_file):
 
         if ctype == "text/plain" and body is None:
             body = part.get_content().strip()
-            raw_html = ""  # no raw_html if we find plain text
         elif ctype == "text/html" and body is None:
             raw_html = part.get_content()
-            body = BeautifulSoup(raw_html, "html.parser").get_text(separator="\n", strip=True)
+            soup = BeautifulSoup(raw_html, "html.parser")
+            body = soup.get_text(separator="\n", strip=False)
+            
 
     if not body:
         body = ""
 
     # Normalize whitespace
     body = re.sub(r"\n\s*\n+", "\n\n", body.strip())
+
+    html_body = render_html(body)
 
     return {
         "from": from_,
@@ -89,7 +118,8 @@ def parse_eml_clean(eml_file):
         "subject": subject,
         "date": date,
         "body": body,
-        "raw_html": raw_html
+        "html": html_body,
+        "eml_path": str(eml_file)
     }
 
 # -------------------
