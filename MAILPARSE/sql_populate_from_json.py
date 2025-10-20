@@ -12,7 +12,7 @@ import json
 from datetime import datetime
 
 # Path to JSON files
-json_folder = Path(r'c:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json')
+json_folder = Path(r'c:/Users/drumm/Documents/ERMINE_local/mail_20250910_211624_conversion/output_json')
 
 
 # Connect to SQLite database (or any other)
@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS email_headers (
     pdf_path TEXT,
     has_attachments INTEGER, -- 0/1
     attachments_json TEXT, -- JSON array of filenames/paths
-    body TEXT
+    body TEXT,
+    html TEXT,
+    eml_path TEXT
     );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS email_data USING fts5(
@@ -63,7 +65,9 @@ for file_path in json_folder.glob("*.json"):
         str(file_path),
         0,          # has_attachments
         '[]',        # attachments_json
-        data.get("body")
+        data.get("body"),
+        data.get("html"),
+        data.get("eml_path")
     ))
 
 
@@ -74,8 +78,8 @@ with conn:
             data = json.load(f)
         # Insert headers
         c.execute('''
-            INSERT INTO email_headers (date, sender, recipient, cc, subject, pdf_path, has_attachments, attachments_json, body)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO email_headers (date, sender, recipient, cc, subject, pdf_path, has_attachments, attachments_json, body, html, eml_path)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 data.get("date"),
                 data.get("from"),
@@ -85,7 +89,9 @@ with conn:
                 str(file_path),
                 0,          # has_attachments
                 '[]',        # attachments_json
-                data.get("body")
+                data.get("body"),
+                data.get("html"),
+                data.get("eml_path")
             ))      
 
         # Insert full-text data
