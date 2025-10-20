@@ -11,8 +11,8 @@ import pandas as pd
 # -----------------------------
 # CONFIG
 # -----------------------------
-INPUT_DIR_seathreader = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Input")
-OUTPUT_DIR_seathreader = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Output")
+INPUT_DIR_seathreader = Path(r"E:\Ermine\mywritingpad@proton.me\Testing\Input")
+OUTPUT_DIR_seathreader = Path(r"E:\Ermine\mywritingpad@proton.me\Testing\Output")
 
 INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json")
 OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/splitted_json")
@@ -47,7 +47,7 @@ EMAIL_ADRESS_RE = re.compile(r'\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\
 SUBJECT_RE = re.compile(r'(subject|asunto|onderwerp):(\n)?[^\n]+\n', re.DOTALL)
 SPECIAL_HEADER_RE_EN = re.compile(r'\nOn.{0,20}?at.{0,40}?@[a-zA-Z0-9-]+\.[a-zA-Z0-9-\s]+>?[\s]*wrote:', re.DOTALL)
 SPECIAL_HEADER_RE_NL = re.compile(r"\nOp.{0,25}?heeft.+\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\n?> het volgende geschreven:")
-SPECIAL_HEADER_RE_ES = re.compile(r"\nEl.{0,14}, a las .{0,10}?,  ")
+SPECIAL_HEADER_RE_ES = re.compile(r"\nEl.{0,14}, a las .{0,10}?, .+?<\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+.+?escribió:")
 #-------------------------------------
 # HELPER-FUNCTIONS
 #-------------------------------------
@@ -77,6 +77,7 @@ def transform_headers(msg_dict: dict) -> dict:
     body = normalize(msg_dict['body:'])
     v = SPECIAL_HEADER_RE_EN.search(body)
     nl = SPECIAL_HEADER_RE_NL.search(body)
+    es = SPECIAL_HEADER_RE_ES.search(body)
 
     if v is not None:
         print(body[v.start(): v.end()])
@@ -97,14 +98,30 @@ def transform_headers(msg_dict: dict) -> dict:
         part = body[nl.start(): nl.end()]
         part = re.sub(r"\nOp", "\nDate:", part)
         part = re.sub(r' heeft', " \nFrom:", part)
+        part = transform_email(part)
         part = re.sub(r' het volgende geschreven:', " msg:", part)
         print(part)
         body = body[:nl.start()] + part + body[nl.end():]
         print(body[nl.start(): nl.end()+3])
         print(body[nl.start(): nl.end()+20])
         msg_dict["body:"] = body
+        return transform_headers(msg_dict)
 
-    elif es is not None
+    elif es is not None:
+        print(body[es.start(): es.end()])
+        part = body[es.start(): es.end()]
+        part = re.sub(r"\nEl", "\nDate:", part)
+        part = transform_email(part)
+        res = re.search(r'a las .{0,15}?,', part) 
+        part = part[:res.end()] + "\nFrom:" + part[res.end()+ 1:]
+        part = re.sub(r'escribió:', " msg:", part)
+        print(part)
+        body = body[:nl.start()] + part + body[nl.end():]
+        print(body[nl.start(): nl.end()+3])
+        print(body[nl.start(): nl.end()+20])
+        msg_dict["body:"] = body
+        return transform_headers(msg_dict)
+
     return msg_dict
 
 
