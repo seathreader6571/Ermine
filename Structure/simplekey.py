@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 
 # === CONFIG ===
-PARENT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt")      # folder with parsed txt files
+PARENT_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\Keywords")      # folder with parsed txt files
 DEST_DIR = Path(r"J:\Ermine\mywritingpad@proton.me\Keywords")     # folder where matched files go
 KEYWORDS = [" Elia ", " booking ", " hotel room "]  # keywords to search (lowercase)
 

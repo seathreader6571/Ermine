@@ -14,6 +14,12 @@ import logging
 import sys
 
 
+
+#----------------------------------------
+# This script: .eml --> .json
+#----------------------------------------
+
+
 INPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\mail_20250910_211624")
 OUTPUT_DIR_seathreader = Path(r"J:\Ermine\mywritingpad@proton.me\output_txt\emails")
 

@@ -11,12 +11,14 @@ NAME = "uber"  # keywords to search (lowercase)
 # Create destination folder if it doesn’t exist
 DEST_DIR.mkdir(parents=True, exist_ok=True)
 
-
+#---------------------------------------------------------------------------------------------------------------------------------------------------
+# This script looks for occurence of certain string combination in specified key. 
+#---------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 def detect_name(data: dict, name: str) -> bool:
     name = name.lower()
-    for key in ['from']:
+    for key in ['from']: #Specify key to search in for given name/keyword
         value = data.get(key, "")
         if isinstance(value, str) and name in value.lower():
             return True
