@@ -17,7 +17,7 @@ OUTPUT_DIR_seathreader = Path(r"A:\Ermine\mywritingpad@proton.me\Testing\Output"
 INPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/output_json")
 OUTPUT_DIR_drummingsnipe = Path(r"C:/Users/drumm/Documents/ERMINE (deprecated)/testbatch/splitted_json")
 
-OUTPUT_DIR_drummingsnipe.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR_seathreader.mkdir(parents=True, exist_ok=True)
 MAX_DEPTH = 35
 DEBUG = True  # set to False to quiet the logs
 
@@ -43,9 +43,11 @@ HEADER_KEYWORDS = {
     'English': ('to:', 'subject:', 'date:', 'sent:', 'cc:')
 }
 HEADER_RE = re.compile(r"\s?(from|van|to|aan|cc|bcc|subject|onderwerp|date|datum|sent|verzonden|asunto|enviado el|de|para|fecha):")
-EMAIL_ADRESS_RE = re.compile(r'<\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\n?>')
-SUBJECT_RE = re.compile(r'(subject|asunto|onderwerp):(\n)?[^\n]+\n')
-SPECIAL_HEADER_RE = re.compile(r'On.{0,20}at.{,30}[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+> wrote')
+EMAIL_ADRESS_RE = re.compile(r'\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\n?>')
+SUBJECT_RE = re.compile(r'(subject|asunto|onderwerp):(\n)?[^\n]+\n', re.DOTALL)
+SPECIAL_HEADER_RE_EN = re.compile(r'\nOn.{0,20}?at.{0,40}?@[a-zA-Z0-9-]+\.[a-zA-Z0-9-\s]+>?[\s]*wrote:', re.DOTALL)
+SPECIAL_HEADER_RE_NL = re.compile(r"\nOp.{0,25}?heeft.+\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\n?> het volgende geschreven:")
+SPECIAL_HEADER_RE_ES = re.compile(r"\nEl.{0,14}, a las .{0,10}?,  ")
 #-------------------------------------
 # HELPER-FUNCTIONS
 #-------------------------------------
@@ -63,6 +65,49 @@ def normalize(text: str) -> str:
 def change_key_format(msg_dict: dict) -> dict:
     new_dict = {f"{key}:": v for key, v in msg_dict.items()} 
     return(new_dict)
+
+def transform_email(text: str) -> str:
+    w = re.search(r'\n?[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-]+\n??', text)
+    text = text[:w.end()+1] + ">" + text[w.end()+1:]
+    return text
+
+
+
+def transform_headers(msg_dict: dict) -> dict:
+    body = normalize(msg_dict['body:'])
+    v = SPECIAL_HEADER_RE_EN.search(body)
+    nl = SPECIAL_HEADER_RE_NL.search(body)
+
+    if v is not None:
+        print(body[v.start(): v.end()])
+        part = body[v.start(): v.end()]
+        part = re.sub(r"\nOn", "\nDate:", part)
+        part = transform_email(part)
+        res = re.search(r'at .{0,15}?,', part)   
+        part = part[:res.end()] + "\nFrom:" + part[res.end()+ 1:]
+        print(part)
+        body = body[:v.start()] + part + body[v.end():]
+        print(body[v.start(): v.end()+3])
+        print(body[v.start(): v.end()+20])
+        msg_dict["body:"] = body
+        return transform_headers(msg_dict)
+
+    elif nl is not None:
+        print(body[nl.start(): nl.end()])
+        part = body[nl.start(): nl.end()]
+        part = re.sub(r"\nOp", "\nDate:", part)
+        part = re.sub(r' heeft', " \nFrom:", part)
+        part = re.sub(r' het volgende geschreven:', " msg:", part)
+        print(part)
+        body = body[:nl.start()] + part + body[nl.end():]
+        print(body[nl.start(): nl.end()+3])
+        print(body[nl.start(): nl.end()+20])
+        msg_dict["body:"] = body
+
+    elif es is not None
+    return msg_dict
+
+
 
 def keyword_to_language(kw: str)-> str:
     if kw == 'van:':
@@ -105,12 +150,11 @@ def header_cluster(text: str) -> bool:
                 # same header keyword → new cluster begins → stop before it
                 return i -1
             headerlist.append(LABEL_TO_CANON[key])
-            print(headerlist)
+            #print(headerlist)
 
 
     # no duplicates found → cluster runs until the last line
     return len(splitted) - 1
-
 
 
 
@@ -125,6 +169,7 @@ def first_body_split(upper_dict: dict) -> dict:
          if any(ln.casefold().startswith(k) for k in LABEL_TO_CANON.keys())),
          None
     )
+
 
     if first_head is None:
         print("No forward header found")
@@ -210,18 +255,19 @@ def subject_handler(text: str) -> str:
 
 def from_handler(text: str) -> str:
     new = text.casefold()
+    #print(new)
     v = EMAIL_ADRESS_RE.search(new)
     return text[v.end():], text[:v.end() ]
 
 
-ls = []
 
-def to_handler(text: str):
+
+def to_handler(text: str, ls):
     new = text.casefold()
     v = EMAIL_ADRESS_RE.search(new)
     if v is not None:
         ls.append(text[:v.end()])
-        return to_handler(text[v.end():])
+        return to_handler(text[v.end():], ls)
     return text, ls
 
 
@@ -236,9 +282,9 @@ def last_line_handler(dc: dict, h : str) -> dict:
         dc["body:"], dc["from:"] = from_handler(body)
     if k.casefold() == "cc:" or k.casefold() == "to:":
         #return dc
-        dc["body:"], dc[k.casefold()] = to_handler(body)
+        dc["body:"], dc[k.casefold()] = to_handler(body, ls = [])
     if k.casefold() == "subject:":
-        print(dc['body:'])
+        #print(dc['body:'])
         dc["body:"], dc["subject:"] = subject_handler(body)
 
     return dc
@@ -262,7 +308,7 @@ def redistribute(dc: dict) -> dict:
         splitted = body.casefold().splitlines()
         for i, line in enumerate(splitted):
             if any(line.startswith(prefix) for prefix in LABEL_TO_CANON.keys()):
-                print(f"found Header key {body.splitlines()[i]}")  #------> DEBUGGING
+                #print(f"found Header key {body.splitlines()[i]}")  #------> DEBUGGING
                 return i
         return None
     
@@ -281,7 +327,7 @@ def redistribute(dc: dict) -> dict:
         dc["body:"] = bod
         dc = redistribute(dc)
         return(dc)
-    print(header_key)
+    #print(header_key)
     dc = last_line_handler(dc, header_key)
     return dc
 
@@ -320,10 +366,10 @@ def process_json(path: Path):
     if not isinstance(data, dict):
         print(f"file {path.name} is not a json-dict.")
         return
-    updated = change_key_format(data)
+    updated = transform_headers(change_key_format(data))
     structured = first_body_split(updated)
     structured_distributed = loop_over_dicts(structured)
-    out_path = OUTPUT_DIR / path.name
+    out_path = OUTPUT_DIR_seathreader / path.name
     try:
         json.dump(structured_distributed, out_path.open("w", encoding="utf-8"), ensure_ascii=False, indent=2)
         print(f"✅  Saved → {out_path}")
@@ -331,11 +377,11 @@ def process_json(path: Path):
         print(f"❌  Failed to write {out_path.name}: {e}")
 
 def batch_process():
-    files = sorted(INPUT_DIR_drummingsnipe.glob("*.json"))
+    files = sorted(INPUT_DIR_seathreader.glob("*.json"))
     if not files:
-        print(f"no json files found in {INPUT_DIR_drummingsnipe.name}")
+        print(f"no json files found in {INPUT_DIR_seathreader.name}")
         return
-    print(f"Found {len(files)} files in {INPUT_DIR_drummingsnipe}")
+    print(f"Found {len(files)} files in {INPUT_DIR_seathreader}")
     for i, f in enumerate(files, 1):
         print(f"[{i}/{len(files)}]")
         process_json(f)
