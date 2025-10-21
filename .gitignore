@@ -3,3 +3,4 @@ MAILPARSE/emails_testbatch.db
 eml_parser_clean.log
 MAILPARSE/__pycache__/eml_to_json.cpython-313.pyc
 MAILPARSE/__pycache__/streamlit.cpython-313.pyc
+extract_attachments.log
