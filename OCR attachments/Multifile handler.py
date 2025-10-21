@@ -10,8 +10,8 @@ import docx2txt
 from tqdm import tqdm
 
 # --- CONFIG ---
-INPUT_DIR = Path(r"PATH/TO/INPUT")
-OUTPUT_DIR = Path(r"PATH/TO/OUTPUT")
+INPUT_DIR = Path(r"E:\Ermine\mywritingpad@proton.me\attachments (output)")
+OUTPUT_DIR = Path(r"E:\Ermine\mywritingpad@proton.me\Testing\OCR-test")
 
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
