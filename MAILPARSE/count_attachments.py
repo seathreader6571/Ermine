@@ -9,14 +9,18 @@ from email.parser import BytesParser
 from collections import Counter
 
 # Path to the folder containing your .eml files
-folder_path = r"C:\Users\drumm\Documents\ERMINE_local\mail_20250910_211624_conversion"
+folder_path_drummingsnipe = r"C:\Users\drumm\Documents\ERMINE_local\mail_20250910_211624_conversion"
+
+folder_path_seathreader = r"E:\Ermine\mywritingpad@proton.me\mail_20250910_211624"
+
+
 
 attachment_count = 0
 file_count = 0
 extensions = Counter()  # To count different file extensions
 
  # Loop through all files in the folder
-for entry in os.scandir(folder_path):
+for entry in os.scandir(folder_path_seathreader):
     if entry.name.lower().endswith(".eml") and entry.is_file():
         file_count += 1
         print(f"files processed: {file_count}", end="\r")
