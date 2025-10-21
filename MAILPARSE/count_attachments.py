@@ -3,6 +3,7 @@
 
 
 import os
+import re
 from email import policy
 from email.parser import BytesParser
 from collections import Counter
@@ -26,8 +27,11 @@ for entry in os.scandir(folder_path):
                 attach_filename = part.get_filename()
                 if attach_filename:
                     ext = os.path.splitext(attach_filename)[1].lower()  # Get extension
-                    if ext:  # Only count non-empty extensions
+                        # Only count extensions that are realistic: letters, numbers, 1-5 chars
+                    if ext and re.match(r'^\.[a-z0-9]{1,5}$', ext):
                         extensions[ext] += 1
+                    else:
+                        extensions['[no/unknown]'] += 1
 
 print(f"Total .eml files processed: {file_count}")
 print(f"Total attachments found: {attachment_count}\n")
