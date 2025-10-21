@@ -17,6 +17,8 @@ import extract_msg
 import email
 from pdf2image import convert_from_path
 from PIL import Image
+from concurrent.futures import ProcessPoolExecutor
+import fitz
 
 
 
@@ -45,23 +47,63 @@ logging.basicConfig(
 # -----------------------------
 # OCR reader
 # -----------------------------
-reader = easyocr.Reader(['en', 'nl', 'es'])  # Add 'nl' or others if needed
+reader = easyocr.Reader(['en', 'nl', 'es'], gpu = True)  # Add 'nl' or others if needed
+
+def pdf_has_text(path):
+    with fitz.open(path) as doc:
+        return any(page.get_text().strip() for page in doc)
+    
+
+
 
 def convert_pdf_to_text(file_path: Path, out_txt: Path):
-    """Convert PDF to text using EasyOCR (no Tesseract)."""
-    with TemporaryDirectory() as tempdir:
-        tempdir = Path(tempdir)
-        pdf_pages = convert_from_path(file_path, dpi=300)
-        all_text = []
-        for i, page in enumerate(pdf_pages, start=1):
-            img_path = tempdir / f"page_{i:03}.jpg"
-            page.save(img_path, "JPEG")
+    """
+    Fast and robust PDF → text converter.
+
+    Strategy:
+      1. Try extracting text directly (for digital PDFs) via PyMuPDF.
+      2. If the PDF has no selectable text, fall back to OCR using EasyOCR.
+      3. Avoids writing intermediate image files; all processing is in memory.
+      4. Uses multiple CPU threads for page rendering (Poppler).
+    """
+    try:
+        # --- 1️⃣ Attempt fast native text extraction ---
+        with fitz.open(file_path) as doc:
+            text_pages = [page.get_text("text") for page in doc]
+            if any(tp.strip() for tp in text_pages):  # if text exists
+                text = "\n".join(text_pages)
+                out_txt.write_text(text, encoding="utf-8")
+                logging.info(f"🧠 Extracted text directly from {file_path.name}")
+                return
+
+        # --- 2️⃣ Fallback to OCR for scanned pages ---
+        logging.info(f"🔍 No embedded text found in {file_path.name}; starting OCR...")
+
+        # Render pages to images in memory (parallelized)
+        pdf_pages = convert_from_path(
+            file_path, 
+            dpi=120,              # Lower DPI = faster
+            fmt="jpeg", 
+            thread_count=4        # Use multiple CPU threads
+        )
+
+        ocr_results = []
+        for i, page_img in enumerate(pdf_pages, start=1):
+            np_img = np.array(page_img)
             try:
-                text_blocks = reader.readtext(str(img_path), detail=0, paragraph=True)
-                all_text.append("\n".join(text_blocks))
+                text_blocks = reader.readtext(np_img, detail=0, paragraph=True)
+                ocr_results.append("\n".join(text_blocks))
             except Exception as e:
-                logging.warning(f"⚠️ Error OCRing page {i} of {file_path.name}: {e}")
-        out_txt.write_text("\n\n".join(all_text), encoding="utf-8")
+                logging.warning(f"⚠️ OCR failed on page {i} of {file_path.name}: {e}")
+                continue
+
+        # Combine OCR results and write output
+        all_text = "\n\n".join(ocr_results)
+        out_txt.write_text(all_text, encoding="utf-8")
+        logging.info(f"✅ OCR completed for {file_path.name}")
+
+    except Exception as e:
+        logging.error(f"❌ Error converting {file_path.name}: {e}")
 
 # -----------------------------
 # Office / text converters
@@ -149,8 +191,6 @@ def process_file(file_path):
             convert_html_to_text(file_path, out_txt)
         elif ext == ".zip":
             convert_zip_to_text(file_path, out_txt)
-        else:
-            convert_with_textract(file_path, out_txt)
 
         logging.info(f"✅ Success: {file_path.name}")
 
@@ -163,8 +203,8 @@ def process_file(file_path):
 def main():
     files = [f for f in INPUT_DIR.glob("**/*") if f.is_file()]
     logging.info(f"Found {len(files)} files in {INPUT_DIR}")
-    for f in tqdm(files, desc="Processing files"):
-        process_file(f)
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
+        list(tqdm(executor.map(process_file, files), total=len(files), desc="Processing files"))
     logging.info("All files processed.")
 
 if __name__ == "__main__":
