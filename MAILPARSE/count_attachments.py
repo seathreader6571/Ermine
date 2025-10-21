@@ -15,21 +15,19 @@ file_count = 0
 extensions = Counter()  # To count different file extensions
 
  # Loop through all files in the folder
-for filename in os.listdir(folder_path):
-    if filename.lower().endswith(".eml"):
+for entry in os.scandir(folder_path):
+    if entry.name.lower().endswith(".eml") and entry.is_file():
         file_count += 1
-        file_path = os.path.join(folder_path, filename)
-        with open(file_path, "rb") as f:
+        print(f"files processed: {file_count}", end="\r")
+        with open(entry.path, "rb") as f:
             msg = BytesParser(policy=policy.default).parse(f)
-            
-            for part in msg.walk():
-                if part.get_content_disposition() == 'attachment':
-                    attachment_count += 1
-                    attach_filename = part.get_filename()
-                    if attach_filename:
-                        ext = os.path.splitext(attach_filename)[1].lower()  # Get extension
-                        if ext:  # Only count non-empty extensions
-                            extensions[ext] += 1
+            for part in msg.iter_attachments():
+                attachment_count += 1
+                attach_filename = part.get_filename()
+                if attach_filename:
+                    ext = os.path.splitext(attach_filename)[1].lower()  # Get extension
+                    if ext:  # Only count non-empty extensions
+                        extensions[ext] += 1
 
 print(f"Total .eml files processed: {file_count}")
 print(f"Total attachments found: {attachment_count}\n")
