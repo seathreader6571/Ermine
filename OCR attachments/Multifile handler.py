@@ -2,7 +2,7 @@
 
 
 
-
+import os
 import logging
 import subprocess
 from pathlib import Path
@@ -14,14 +14,16 @@ import zipfile
 from bs4 import BeautifulSoup
 import openpyxl
 import extract_msg
+import numpy as np
 import email
 from pdf2image import convert_from_path
 from PIL import Image
 from concurrent.futures import ProcessPoolExecutor
 import fitz
+import pytesseract
 
 
-
+ 
 # -----------------------------
 # Paths
 # -----------------------------
@@ -57,53 +59,32 @@ def pdf_has_text(path):
 
 
 def convert_pdf_to_text(file_path: Path, out_txt: Path):
-    """
-    Fast and robust PDF → text converter.
-
-    Strategy:
-      1. Try extracting text directly (for digital PDFs) via PyMuPDF.
-      2. If the PDF has no selectable text, fall back to OCR using EasyOCR.
-      3. Avoids writing intermediate image files; all processing is in memory.
-      4. Uses multiple CPU threads for page rendering (Poppler).
-    """
     try:
-        # --- 1️⃣ Attempt fast native text extraction ---
+        # 1️⃣ Try direct text extraction
         with fitz.open(file_path) as doc:
             text_pages = [page.get_text("text") for page in doc]
-            if any(tp.strip() for tp in text_pages):  # if text exists
+            if any(tp.strip() for tp in text_pages):
                 text = "\n".join(text_pages)
                 out_txt.write_text(text, encoding="utf-8")
                 logging.info(f"🧠 Extracted text directly from {file_path.name}")
                 return
 
-        # --- 2️⃣ Fallback to OCR for scanned pages ---
-        logging.info(f"🔍 No embedded text found in {file_path.name}; starting OCR...")
-
-        # Render pages to images in memory (parallelized)
-        pdf_pages = convert_from_path(
-            file_path, 
-            dpi=120,              # Lower DPI = faster
-            fmt="jpeg", 
-            thread_count=4        # Use multiple CPU threads
-        )
+        # 2️⃣ OCR fallback (Tesseract)
+        logging.info(f"🔍 Starting Tesseract OCR for {file_path.name}...")
+        pdf_pages = convert_from_path(file_path, dpi=120, fmt="jpeg", thread_count=4)
 
         ocr_results = []
         for i, page_img in enumerate(pdf_pages, start=1):
-            np_img = np.array(page_img)
-            try:
-                text_blocks = reader.readtext(np_img, detail=0, paragraph=True)
-                ocr_results.append("\n".join(text_blocks))
-            except Exception as e:
-                logging.warning(f"⚠️ OCR failed on page {i} of {file_path.name}: {e}")
-                continue
+            text = pytesseract.image_to_string(page_img, lang="eng+spa+nl")
+            ocr_results.append(text)
 
-        # Combine OCR results and write output
         all_text = "\n\n".join(ocr_results)
         out_txt.write_text(all_text, encoding="utf-8")
         logging.info(f"✅ OCR completed for {file_path.name}")
 
     except Exception as e:
         logging.error(f"❌ Error converting {file_path.name}: {e}")
+
 
 # -----------------------------
 # Office / text converters
